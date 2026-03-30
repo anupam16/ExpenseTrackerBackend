@@ -5,6 +5,7 @@ import {
   getExpenseById,
   getExpenses,
   deleteExpense,
+  getExpenseSummary,
 } from "./service";
 
 export const createExpenseController = async (
@@ -78,6 +79,25 @@ export const deleteExpenseController = async (
     return res.status(200).json({
       success: true,
       message: "Expense deleted successfully",
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getExpenseSummaryController = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const month = req.query.month as string;
+    console.log("Month:", month);
+    const summary = await getExpenseSummary(req.user!.userId, month);
+
+    return res.status(200).json({
+      success: true,
+      data: summary,
     });
   } catch (error) {
     next(error);

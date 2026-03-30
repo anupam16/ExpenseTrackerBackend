@@ -1,6 +1,7 @@
 import { prisma } from "@lib/prisma";
 import { Prisma } from "../../generated/client";
 import { CreateExpenseInput } from "./validation";
+import { generateExpenseSummary } from "../ai/service";
 
 export const createExpense = async (
   userId: string,
@@ -95,4 +96,46 @@ export const deleteExpense = async (expenseId: string, userId: string) => {
   });
 
   return expense;
+};
+
+export const getExpenseSummary = async (userId: string, month: string) => {
+  const startDate = new Date(`${month}-01`);
+
+  const endDate = new Date(startDate);
+  endDate.setMonth(endDate.getMonth() + 1);
+
+  const expenses = await prisma.expense.findMany({
+    where: {
+      userId,
+      date: {
+        gte: startDate,
+        lt: endDate,
+      },
+    },
+  });
+
+  const categoryMap: Record<string, number> = {};
+
+  let total = 0;
+
+  expenses.forEach((expense) => {
+    const category = expense.category || "Uncategorized";
+    const amount = Number(expense.amount);
+
+    categoryMap[category] = (categoryMap[category] || 0) + amount;
+    total += amount;
+  });
+
+  const aiSummary = await generateExpenseSummary({
+    month,
+    total,
+    categories: categoryMap,
+  });
+
+  return {
+    month,
+    total,
+    categories: categoryMap,
+    aiSummary,
+  };
 };
